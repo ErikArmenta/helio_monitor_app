@@ -1,0 +1,44 @@
+# Archivos de entorno (¡TU SUPABASE AQUÍ!)
+.env
+*.env
+*.env.local
+*.env.production
+
+# Archivos generados por Flutter/Dart
+.dart_tool/
+.pub/
+.pub-cache/
+.pub-data/
+build/
+flutter_*.png
+*.iml
+*.lock
+*.fseventsd
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Archivos de Android (si haces móvil)
+android/.gradle
+android/.idea
+android/local.properties
+android/*.iml
+
+# Archivos de iOS (si haces móvil)
+ios/.symlinks/
+ios/Pods/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+
+# Archivos de Web (si haces web)
+/web/*.dart.js
+/web/*.dart.js.map
+/web/*.dart.js.deps
+/web/manifest.json
+/web/AssetManifest.json
+/web/FontManifest.json
