@@ -64,8 +64,8 @@ class SyncService {
     return count;
   }
 
-  Stream<List<ConnectivityResult>> get connectivityStream =>
-      Connectivity().onConnectivityChanged.map((event) => event.first);
+  Stream<dynamic> get connectivityStream =>
+      Connectivity().onConnectivityChanged;
 }
 
 class SyncResult {

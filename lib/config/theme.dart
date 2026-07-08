@@ -87,7 +87,7 @@ class EaTheme {
       ),
       scaffoldBackgroundColor: const Color(0xFFF0F2F5),
       textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: EaColors.cardLight,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
