@@ -11,7 +11,7 @@ class SyncService {
 
   Future<bool> get hasConnectivity async {
     final result = await Connectivity().checkConnectivity();
-    return !result.contains(ConnectivityResult.none);
+    return result != ConnectivityResult.none;
   }
 
   Future<SyncResult> syncAll() async {
@@ -65,7 +65,7 @@ class SyncService {
   }
 
   Stream<List<ConnectivityResult>> get connectivityStream =>
-      Connectivity().onConnectivityChanged;
+      Connectivity().onConnectivityChanged.map((event) => event.first);
 }
 
 class SyncResult {
