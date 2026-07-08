@@ -2,11 +2,24 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/reading.dart';
 import 'thermodynamics_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 class LocalDatabaseService {
   Database? _db;
 
   Future<void> initialize() async {
+    if (kIsWeb) {
+      databaseFactory = databaseFactoryFfiWebNoWebWorker;
+      _db = await openDatabase(
+        'helium_recovery.db',
+        version: 2,
+        onCreate: _createTables,
+        onUpgrade: _onUpgrade,
+      );
+      return;
+    }
+
     final dbPath = await getDatabasesPath();
     _db = await openDatabase(
       join(dbPath, 'helium_recovery.db'),
