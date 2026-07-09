@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/sync_provider.dart';
+import '../providers/auth_provider.dart';
+import '../models/user_profile.dart';
 import '../config/theme.dart';
 import 'dashboard_screen.dart';
 import 'new_reading_screen.dart';
@@ -8,6 +10,16 @@ import 'charts_screen.dart';
 import 'ai_chat_screen.dart';
 import 'ocr_screen.dart';
 import 'readings_list_screen.dart';
+import 'users_crud_screen.dart';
+
+class NavItem {
+  final IconData icon;
+  final String label;
+  final Widget screen;
+  final List<AppRole> allowedRoles;
+
+  NavItem(this.icon, this.label, this.screen, this.allowedRoles);
+}
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -19,41 +31,18 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
 
-  static const _destinations = [
-    NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
-    NavigationDestination(icon: Icon(Icons.add_circle_outline_rounded), label: 'Lectura'),
-    NavigationDestination(icon: Icon(Icons.table_chart_rounded), label: 'Datos'),
-    NavigationDestination(icon: Icon(Icons.show_chart_rounded), label: 'Graficas'),
-    NavigationDestination(icon: Icon(Icons.smart_toy_rounded), label: 'Jarvis IA'),
-    NavigationDestination(icon: Icon(Icons.document_scanner_rounded), label: 'OCR'),
-  ];
-
-  static const _railDestinations = [
-    NavigationRailDestination(icon: Icon(Icons.dashboard_rounded), label: Text('Dashboard')),
-    NavigationRailDestination(icon: Icon(Icons.add_circle_outline_rounded), label: Text('Lectura')),
-    NavigationRailDestination(icon: Icon(Icons.table_chart_rounded), label: Text('Datos')),
-    NavigationRailDestination(icon: Icon(Icons.show_chart_rounded), label: Text('Graficas')),
-    NavigationRailDestination(icon: Icon(Icons.smart_toy_rounded), label: Text('Jarvis IA')),
-    NavigationRailDestination(icon: Icon(Icons.document_scanner_rounded), label: Text('OCR')),
-  ];
-
-  Widget _buildPage(int index) {
-    switch (index) {
-      case 0:
-        return const DashboardScreen();
-      case 1:
-        return const NewReadingScreen();
-      case 2:
-        return const ReadingsListScreen();
-      case 3:
-        return const ChartsScreen();
-      case 4:
-        return const AiChatScreen();
-      case 5:
-        return const OcrScreen();
-      default:
-        return const DashboardScreen();
-    }
+  List<NavItem> get _availableItems {
+    final role = context.watch<AuthProvider>().userProfile?.role ?? AppRole.inspector;
+    final allItems = [
+      NavItem(Icons.dashboard_rounded, 'Dashboard', const DashboardScreen(), [AppRole.super_admin, AppRole.supervisor]),
+      NavItem(Icons.add_circle_outline_rounded, 'Lectura', const NewReadingScreen(), [AppRole.super_admin, AppRole.supervisor, AppRole.inspector]),
+      NavItem(Icons.table_chart_rounded, 'Datos', const ReadingsListScreen(), [AppRole.super_admin, AppRole.supervisor]),
+      NavItem(Icons.show_chart_rounded, 'Graficas', const ChartsScreen(), [AppRole.super_admin, AppRole.supervisor]),
+      NavItem(Icons.smart_toy_rounded, 'Jarvis IA', const AiChatScreen(), [AppRole.super_admin]),
+      NavItem(Icons.document_scanner_rounded, 'OCR', const OcrScreen(), [AppRole.super_admin, AppRole.inspector]),
+      NavItem(Icons.group_rounded, 'Usuarios', const UsersCrudScreen(), [AppRole.super_admin]),
+    ];
+    return allItems.where((item) => item.allowedRoles.contains(role)).toList();
   }
 
   @override
@@ -61,6 +50,13 @@ class _MainShellState extends State<MainShell> {
     final width = MediaQuery.of(context).size.width;
     final isTablet = width >= 600;
     final isDesktop = width >= 1100;
+    final items = _availableItems;
+    final authProfile = context.watch<AuthProvider>().userProfile;
+
+    // Ensure selected index is within bounds if role changes
+    if (_selectedIndex >= items.length) {
+      _selectedIndex = 0;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -108,6 +104,11 @@ class _MainShellState extends State<MainShell> {
               tooltip: sync.isOnline ? 'Sincronizado' : 'Sin conexion',
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () => context.read<AuthProvider>().signOut(),
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -118,7 +119,10 @@ class _MainShellState extends State<MainShell> {
               extended: isDesktop,
               selectedIndex: _selectedIndex,
               onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-              destinations: _railDestinations,
+              destinations: items.map((item) => NavigationRailDestination(
+                icon: Icon(item.icon),
+                label: Text(item.label),
+              )).toList(),
               leading: isDesktop
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -126,19 +130,18 @@ class _MainShellState extends State<MainShell> {
                         children: [
                           CircleAvatar(
                             backgroundColor: EaColors.primary.withOpacity(0.2),
-                            child: const Icon(Icons.engineering_rounded,
-                                color: EaColors.primary),
+                            child: const Icon(Icons.person, color: EaColors.primary),
                           ),
                           const SizedBox(height: 8),
-                          const Text('Ing. Armenta',
-                              style: TextStyle(fontSize: 12)),
+                          Text(authProfile?.fullName ?? 'Usuario', style: const TextStyle(fontSize: 12)),
+                          Text(authProfile?.role.name.toUpperCase() ?? '', style: const TextStyle(fontSize: 10, color: EaColors.textSecondary)),
                         ],
                       ),
                     )
                   : null,
             ),
           if (isTablet) const VerticalDivider(thickness: 1, width: 1),
-          Expanded(child: _buildPage(_selectedIndex)),
+          Expanded(child: items.isEmpty ? const Center(child: Text('Sin permisos')) : items[_selectedIndex].screen),
         ],
       ),
       bottomNavigationBar: isTablet
@@ -146,7 +149,10 @@ class _MainShellState extends State<MainShell> {
           : NavigationBar(
               selectedIndex: _selectedIndex,
               onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-              destinations: _destinations,
+              destinations: items.map((item) => NavigationDestination(
+                icon: Icon(item.icon),
+                label: item.label,
+              )).toList(),
               height: 65,
               labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
             ),

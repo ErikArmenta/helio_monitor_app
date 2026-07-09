@@ -5,10 +5,12 @@ import 'config/theme.dart';
 import 'providers/readings_provider.dart';
 import 'providers/sync_provider.dart';
 import 'providers/ai_chat_provider.dart';
+import 'providers/auth_provider.dart';
 import 'services/local_database_service.dart';
 import 'services/supabase_service.dart';
 import 'services/sync_service.dart';
 import 'screens/main_shell.dart';
+import 'screens/login_screen.dart';
 
 const supabaseUrl = String.fromEnvironment(
   'SUPABASE_URL',
@@ -27,7 +29,11 @@ void main() async {
   }
 
   final localDb = LocalDatabaseService();
-  await localDb.initialize();
+  try {
+    await localDb.initialize();
+  } catch (e) {
+    debugPrint('Local DB init failed: $e');
+  }
 
   final supabaseService = SupabaseService();
   final syncService = SyncService(localDb: localDb, remote: supabaseService);
@@ -35,6 +41,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(
           create: (_) => ReadingsProvider(localDb, supabaseService),
         ),
@@ -57,7 +64,19 @@ class HeliumRecoveryApp extends StatelessWidget {
       theme: EaTheme.light,
       darkTheme: EaTheme.dark,
       themeMode: ThemeMode.dark,
-      home: const MainShell(),
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          if (auth.isLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (auth.isAuthenticated) {
+            return const MainShell();
+          }
+          return const LoginScreen();
+        },
+      ),
     );
   }
 }
